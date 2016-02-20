@@ -2,6 +2,11 @@
 Cities Skylines Mod - ChirpBanner
 Replaces Chirpy with a scrolling marquee style banner along the top 
 
+V1.2
+- ModCorral dependency removed. Config button is now a small Chirpy icon.
+- Snowfall compatibility. 
+- Chirps deemed important should be colored all red.
+
 V1.1.1 
 - typo: scrolling not srolling 
 - added catch to serialize code 
