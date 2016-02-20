@@ -25,14 +25,55 @@ namespace ChirpBanner
        }
     }
 
+	// Adds a button to configure the ChirperBanner
+	public class LoadingExtension : LoadingExtensionBase
+	{
+		public override void OnLevelLoaded(LoadMode mode)
+		{
+			// Get the UIView object. This seems to be the top-level object for most
+			// of the UI.
+			var uiView = UIView.GetAView();
+
+			// Add a new button to the view.
+			var button = (UIButton)uiView.AddUIComponent(typeof(UIButton));
+
+			// Set the text to show on the button.
+			//button.text = "Click Me!";
+
+			// Set the button dimensions.
+			button.width = 30;
+			button.height = 30;
+
+			// Style the button to look like a menu button.
+			button.normalBgSprite = "ButtonMenu";
+			button.normalFgSprite = "ChirperIcon";
+			button.disabledBgSprite = "ButtonMenuDisabled";
+			button.hoveredBgSprite = "RoundBackBigHovered";
+			button.focusedBgSprite = "ButtonMenuFocused";
+			button.pressedBgSprite = "RoundBackBigPressed";
+
+			// Enable button sounds.
+			button.playAudioEvents = true;
+
+			// Place the button.
+			button.transformPosition = new Vector3(1.61f, 1.0f);
+
+			// Respond to button click.
+			button.eventClick += ButtonClick;
+		}
+
+		private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
+		{
+			ChirpyBanner.theBannerConfigPanel.ShowPanel(Vector2.zero, true);
+		}
+	}
+
    public class ChirpyBanner : IChirperExtension
    {
       public static MyConfig CurrentConfig;
       public static BannerPanel theBannerPanel;
       public static IChirper BuiltinChirper;
-      public static MyMonoB mmb;
 
-      private Component ChirpFilter_FilterModule = null;
       public static BannerConfiguration theBannerConfigPanel;
 
       public void OnCreated(IChirper chirper)
@@ -64,24 +105,51 @@ namespace ChirpBanner
          CreateBannerConfigUI();
          CreateBannerUI();
 
-         if (mmb == null)
-         {
-            UIView uiv = UIView.GetAView();
-
-            if (uiv != null && uiv.gameObject != null)
-            {
-               mmb = uiv.gameObject.AddComponent<MyMonoB>();
-               mmb.transform.parent = uiv.transform;
-            }
-         }
       }
 
       public void OnMessagesUpdated()
       {
       }
 
+	// Based on https://github.com/AtheMathmo/SuperChirperMod/blob/master/SuperChirper/ChirpFilter.cs
+	// But in the opposite direction
+	public static bool FilterMessage(string input)
+	{
+
+		switch (input)
+		{
+		// Handles ID's of all nonsense chirps.
+		case LocaleID.CHIRP_ASSISTIVE_TECHNOLOGIES:
+		case LocaleID.CHIRP_ATTRACTIVE_CITY:
+		case LocaleID.CHIRP_CHEAP_FLOWERS:
+		case LocaleID.CHIRP_DAYCARE_SERVICE:
+		case LocaleID.CHIRP_HAPPY_PEOPLE:
+		case LocaleID.CHIRP_HIGH_TECH_LEVEL:
+		case LocaleID.CHIRP_LOW_CRIME:
+		case LocaleID.CHIRP_NEW_FIRE_STATION:
+		case LocaleID.CHIRP_NEW_HOSPITAL:
+		case LocaleID.CHIRP_NEW_MAP_TILE:
+		case LocaleID.CHIRP_NEW_MONUMENT:
+		case LocaleID.CHIRP_NEW_PARK:
+		case LocaleID.CHIRP_NEW_PLAZA:
+		case LocaleID.CHIRP_NEW_POLICE_HQ:
+		case LocaleID.CHIRP_NEW_TILE_PLACED:
+		case LocaleID.CHIRP_NEW_UNIVERSITY:
+		case LocaleID.CHIRP_NEW_WIND_OR_SOLAR_PLANT:
+		case LocaleID.CHIRP_ORGANIC_FARMING:
+		case LocaleID.CHIRP_POLICY:
+		case LocaleID.CHIRP_PUBLIC_TRANSPORT_EFFICIENCY:
+		case LocaleID.CHIRP_RANDOM:
+		case LocaleID.CHIRP_STUDENT_LODGING:
+			return false;
+		default:
+			return true;
+		}
+	}
+
       public void OnNewMessage(IChirperMessage message)
       {
+			bool important = false;
          if (message != null && theBannerPanel != null)
          {
             try
@@ -91,51 +159,16 @@ namespace ChirpBanner
                CitizenMessage cm = message as CitizenMessage;
                if (cm != null)
                {
-                  //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("found citmess MessageID: {0} GetText: {1}", cm.m_messageID, cm.GetText()));
+                  DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("found citmess MessageID: {0} GetText: {1}", cm.m_messageID, cm.GetText()));
                   citizenMessageID = cm.m_messageID;
                }
 
                if (!string.IsNullOrEmpty(citizenMessageID))
                {
-                  // Integrate with ChirpFilter
-                  if (ChirpFilter_FilterModule == null)
-                  {
-                     GameObject ChirpFilter_GameObject = GameObject.Find("ChirperFilterModule");
-
-                     if (ChirpFilter_GameObject != null)
-                     {
-                        ChirpFilter_FilterModule = ChirpFilter_GameObject.GetComponent("ChirpFilter.FilterModule");
-                     }
-                  }
-
-                  if (ChirpFilter_FilterModule != null)
-                  {
-                     bool bIsBlacklisted = false;
-
-                     if (ChirpFilter_FilterModule is IFormattable)
-                     {
-                        IFormattable ifs = ChirpFilter_FilterModule as IFormattable;
-
-
-                        string sresult = ifs.ToString(citizenMessageID, null);
-
-                        if (string.IsNullOrEmpty(sresult) || sresult == "false")
-                        {
-                           bIsBlacklisted = false;
-                        }
-                        else if (sresult == "true")
-                        {
-                           bIsBlacklisted = true;
-                        }
-                     }
-
-                     // see if ChirpFilter wants us to filter (not show) the message
-                     if (bIsBlacklisted)
-                     {
-                        //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("msgid {0} msg {1} blacklisted", citizenMessageID, message.text));
-                        return;
-                     }
-                  }
+				  // TODO: Do stuff if the Chirper message is actually important.
+				  // Hope is to mimic SimCity's ticker.
+				  // List of LocaleIDs available here: https://github.com/cities-skylines/Assembly-CSharp/wiki/LocaleID
+				  important = FilterMessage(cm.m_messageID);
                }
             }
             catch (Exception ex)
@@ -158,9 +191,17 @@ namespace ChirpBanner
             {
                textColorTag = textColorTag.Substring(0, 7); // drop alpha bits
             }
-            
+			
+				if (important) {
+					DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("Chirp is important: {0}", message.text));
+					//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("CurrentConfig.NameColor: {0}", CurrentConfig.NameColor));
+					//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("CurrentConfig.MessageColor: {0}", CurrentConfig.MessageColor));
+					textColorTag = "#FF0000";
+					nameColorTag = "#FF0000";
+				}
             //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp! {0}", message.text));
-
+			//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("textColorTag: {0}", textColorTag));
+			//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("nameColorTag: {0}", nameColorTag));
             string str = String.Format("<color{0}>{1}</color> : <color{2}>{3}</color>", nameColorTag, message.senderName, textColorTag, message.text);
             theBannerPanel.CreateBannerLabel(str, message.senderID);
          }
@@ -172,11 +213,7 @@ namespace ChirpBanner
          {
             theBannerPanel = null;
          }
-
-         if (mmb != null)
-         {          
-            mmb = null;
-         }
+				
       }
 
       public void OnUpdate()
@@ -242,52 +279,6 @@ namespace ChirpBanner
          }
       }
 
-   }
-
-   public class MyMonoB : MonoBehaviour
-   {
-      public static GameObject corralGo = null;
-
-      public void Awake()
-      {
-         // find modcorral
-         corralGo = GameObject.Find("CorralRegistrationGameObject");
-
-         if (corralGo != null)
-         {
-            Action<string> callbackDel = this.ModCorralClickCallback;
-            object[] paramArray = new object[16];
-
-            paramArray[0] = "ChirpyBannerMod";
-            paramArray[1] = "Chirpy Config";
-            paramArray[2] = "Open the configuration panel for Chirpy Banner";
-            paramArray[3] = callbackDel;
-            paramArray[4] = "ChirperIcon";//normalfg
-            paramArray[5] = null;
-            paramArray[6] = "";//normalbg
-            paramArray[7] = null;
-            paramArray[8] = "ChirperHovered";//hoverfg
-            paramArray[9] = null;
-            paramArray[10] = "ToolbarIconZoomOutbasePressed";//hoverbg
-            paramArray[11] = null;
-            paramArray[12] = "ChirperPressed";//pressedfg
-            paramArray[13] = null;
-            paramArray[14] = "ToolbarIconZoomOutbaseHovered";//pressedbg
-            paramArray[15] = null;
-
-
-            corralGo.SendMessage("RegisterMod", paramArray);
-         }
-         else
-         {
-            DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "ChirpBanner cound not find corral gameobject");
-         }
-      }
-
-      public void ModCorralClickCallback(string buttonName)
-      {
-         ChirpyBanner.theBannerConfigPanel.ShowPanel(Vector2.zero, true);
-      }
    }
 
    public class BannerLabelStruct
