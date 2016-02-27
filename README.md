@@ -1,6 +1,17 @@
 # CS-ChirpBanner
-Cities Skylines Mod - ChirpBanner
+Cities Skylines Mod - ChirpBanner+ 
+[update by aqtrans]
 Replaces Chirpy with a scrolling marquee style banner along the top 
+
+v2.0
+- Performance drastically improved!
+    - Performance issues seemed to be the result of the way in which the scrolling was performed previously, hooking into some deep Unity stuff.
+    - I am now using the native IThreadingExtension to perform the scrolling, resulting in crazy smooth performance.
+- Chirp Filtering built in!
+    - Chirps previously simply deeped important should now be the only ones displayed, if the option is checked.
+- Options menu migrated to the native Options->Mods menu
+    - Shouldn't be any need to adjust these settings in-game anyways.
+- Chirp scrolling now pauses on pausing
 
 V1.2
 - ModCorral dependency removed. Config button is now a small Chirpy icon.

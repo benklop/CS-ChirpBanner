@@ -199,12 +199,14 @@ namespace ChirpBanner
 		//Thread: Main
 		public void OnUpdate(float realTimeDelta, float simulationTimeDelta)
 		{
-			moveChirps();
+			if (!threading.simulationPaused) {
+				moveChirps();
+			}
 		}
 		//Thread: Simulation
 		public void OnBeforeSimulationTick()
 		{
-
+			
 		}
 		//Thread: Simulation
 		public void OnBeforeSimulationFrame()
