@@ -3,6 +3,10 @@ Cities Skylines Mod - ChirpBanner+
 [update by aqtrans]
 Replaces Chirpy with a scrolling marquee style banner along the top 
 
+v2.1
+- Migrate the rest of the old settings to new Options panel, which fixes...
+- New users now have scrolling Chirps, as ScrollSpeed var is properly set to a minimum of 50.
+
 v2.0
 - Performance drastically improved!
     - Performance issues seemed to be the result of the way in which the scrolling was performed previously, hooking into some deep Unity stuff.
