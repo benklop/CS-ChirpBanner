@@ -21,9 +21,9 @@ namespace ChirpBanner
       // sub panels
       UITitleSubPanel TitleSubPanel;
       UICheckSubPanel HideChirpSubPanel;
+		UICheckSubPanel FilterChirpSubPanel;
       UISliderSubPanel ScrollSpeedSlider;
       UISliderSubPanel TextSizeSlider;
-      UISliderSubPanel AlphaSlider;
       UIColorSubPanel NameColorSubPanel;
       UIColorSubPanel MessageColorSubPanel;
 
@@ -41,8 +41,6 @@ namespace ChirpBanner
          }
 
          this.backgroundSprite = "MenuPanel";// or MenuPanel2
-         int viewWidth = (int)uiv.GetScreenResolution().x;
-         int viewHeight = (int)uiv.GetScreenResolution().y;
          this.clipChildren = false;// true; //temp
          this.canFocus = true;
          this.isInteractive = true;
@@ -76,6 +74,10 @@ namespace ChirpBanner
          };
 
 
+			FilterChirpSubPanel = AddUIComponent<UICheckSubPanel>();
+			FilterChirpSubPanel.ParentBannerConfig = this;
+			FilterChirpSubPanel.Checked = ChirpyBanner.CurrentConfig.FilterChirps;
+
          ScrollSpeedSlider = AddUIComponent<UISliderSubPanel>();
          ScrollSpeedSlider.ParentBannerConfig = this;
          ScrollSpeedSlider.Slider.minValue = 1;
@@ -95,22 +97,6 @@ namespace ChirpBanner
          TextSizeSlider.Slider.scrollWheelAmount = 1;
          TextSizeSlider.Description.text = "Text Size";
          TextSizeSlider.Slider.eventValueChanged += (component, param) => { ChirpyBanner.CurrentConfig.TextSize = (int)param; };
-
-         AlphaSlider = AddUIComponent<UISliderSubPanel>();
-         AlphaSlider.ParentBannerConfig = this;
-         AlphaSlider.Slider.minValue = 0f;
-         AlphaSlider.Slider.maxValue = 1f;
-         AlphaSlider.Slider.stepSize = 0.01f;
-         AlphaSlider.Slider.value = ChirpyBanner.CurrentConfig.BackgroundAlpha;
-         AlphaSlider.Slider.scrollWheelAmount = 0.01f;
-         AlphaSlider.Description.text = "Background Transparency";
-         AlphaSlider.Slider.eventValueChanged += (component, param) => 
-         {
-            // don't go below opacity of 0.00999999977648258 or control becomes non-responsive to clicks
-            float val = Math.Max(0.02f, Math.Min(0.98f, param));
-            ChirpyBanner.CurrentConfig.BackgroundAlpha = val; 
-            ChirpyBanner.theBannerPanel.opacity = (1f - val); 
-         };
 
          NameColorSubPanel = AddUIComponent<UIColorSubPanel>();
          NameColorSubPanel.ParentBannerConfig = this;

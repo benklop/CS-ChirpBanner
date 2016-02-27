@@ -3,9 +3,11 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Xml.Serialization;
 using ICities;
 using ColossalFramework;
+using ColossalFramework.Threading;
 using ColossalFramework.UI;
 using UnityEngine;
 using UnityEngine.UI;
@@ -28,6 +30,12 @@ namespace ChirpBanner
 	// Adds a button to configure the ChirperBanner
 	public class LoadingExtension : LoadingExtensionBase
 	{
+		ILoading loading;
+		public override void OnCreated(ILoading loading)
+		{
+			this.loading = loading;
+		}
+
 		public override void OnLevelLoaded(LoadMode mode)
 		{
 			// Get the UIView object. This seems to be the top-level object for most
@@ -60,12 +68,168 @@ namespace ChirpBanner
 
 			// Respond to button click.
 			button.eventClick += ButtonClick;
+
+			if (loading.managers.threading.simulationPaused) 
+			{
+				ChirpyBanner.CurrentConfig.ScrollSpeed = 0;
+			}
 		}
 
 		private void ButtonClick(UIComponent component, UIMouseEventParameter eventParam)
 		{
 			ChirpyBanner.theBannerConfigPanel.ShowPanel(Vector2.zero, true);
 		}
+	}
+
+	// Function to thread the Chirp stuff
+	// Code for threading courtesy of https://github.com/onewaycitystreets/StreetDirectionViewer/blob/0107f423af6a79a81dfce3e6942d01df9db0065f/StreetDirectionViewer.cs
+	/*
+	public class ChirpyThreadingExtension : ThreadingExtensionBase {
+
+		public IThreading threading;
+		public override void OnCreated(IThreading threading) {
+			this.threading = threading;
+				
+		}
+
+		public override void OnReleased() {
+
+		}
+
+		public override void OnUpdate(float realTimeDelta, float simulationTimeDelta) {
+			// OnCreate appears to be called too early to add things to the UI, so add the button
+			// in OnUpdate.
+
+		}
+
+		public override void OnBeforeSimulationTick() {
+
+		}
+
+		public void OnCreated(ILoading loading) {
+			// This doesn't seem to be called. Maybe the plugin manager
+			// sees that it implements IThreadingExtension first and doesn't
+			// look for other interfaces?
+		}
+
+		public void OnLevelLoaded(LoadMode mode) {
+
+		}
+
+		public void OnLevelUnloading() {
+
+		}
+
+}*/
+	public class MyIThreadingExtension: IThreadingExtension
+	{
+		static IThreading threading = null;
+		//Thread: Main
+		public void OnCreated(IThreading _threading)
+		{
+			threading = _threading;
+		}
+
+		static public IThreading getThreading(){
+			return threading;
+		}
+		//Thread: Main
+		public void OnReleased()
+		{
+			threading = null;
+		}
+		static public void addTask2Main(System.Action action)
+		{
+			if (threading != null)
+			{
+				threading.QueueMainThread(action);
+			}
+		}
+		static public void addTask2Sim(System.Action action)
+		{
+			if (threading != null)
+			{
+				threading.QueueSimulationThread(action);
+			}
+		}
+
+		//Thread: Main
+		public void OnUpdate(float realTimeDelta, float simulationTimeDelta)
+		{
+			moveChirps();
+		}
+		//Thread: Simulation
+		public void OnBeforeSimulationTick()
+		{
+
+		}
+		//Thread: Simulation
+		public void OnBeforeSimulationFrame()
+		{
+			
+		}
+		//Thread: Simulation
+		public void OnAfterSimulationFrame()
+		{
+
+		}
+		//Thread: Simulation
+		public void OnAfterSimulationTick()
+		{
+
+		}
+
+		public void moveChirps() {
+			if (BannerPanel.hasChirps) {
+				bool bPopIt = false;
+				float currentTrailingEdge = 0;
+				foreach (BannerLabelStruct bls in ChirpyBanner.theBannerPanel.BannerLabelsQ) {
+					if (bls.IsCurrentlyVisible)
+					{
+						bls.Label.relativePosition = new Vector3(bls.Label.relativePosition.x - Time.deltaTime * ChirpyBanner.CurrentConfig.ScrollSpeed, bls.Label.relativePosition.y, bls.Label.relativePosition.z);
+						bls.RelativePosition = bls.Label.relativePosition;
+						//DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp position! {0}", bls.RelativePosition));
+
+
+						// is it off to the left entirely?                              
+						if ((bls.Label.relativePosition.x + bls.Label.width) <= 0)
+						{
+							bPopIt = true;
+							bls.IsCurrentlyVisible = false;
+							bls.Label.isVisible = false;
+						}
+						else
+						{
+							// still in banner (in whole or in part)
+							currentTrailingEdge += bls.RelativePosition.x + bls.Label.width;
+							bls.Label.isVisible = true;
+						}
+					}
+					else // I'm not yet visible...
+					{
+						// is there room for me to start scrolling?
+						if (currentTrailingEdge < ChirpyBanner.theBannerPanel.width)
+						{
+							// yes, there's room
+							bls.Label.relativePosition = new Vector3(ChirpyBanner.theBannerPanel.width, bls.Label.relativePosition.y, bls.Label.relativePosition.z);
+							bls.RelativePosition = bls.Label.relativePosition;
+							bls.IsCurrentlyVisible = true;
+							bls.Label.isVisible = true;
+							currentTrailingEdge += bls.RelativePosition.x + bls.Label.width; 
+						}
+					}
+				}
+
+				if (bPopIt)
+				{
+					BannerLabelStruct blsfree = ChirpyBanner.theBannerPanel.BannerLabelsQ.Dequeue();
+					ChirpyBanner.theBannerPanel.RemoveBannerLabel(blsfree);
+					//this.RemoveUIComponent(blsfree.Label);
+				}					
+			}			
+		}
+			
+
 	}
 
    public class ChirpyBanner : IChirperExtension
@@ -89,9 +253,9 @@ namespace ChirpBanner
             MyConfig.Serialize(configName, CurrentConfig);
          }
          // if old version, update with new
-         else if (CurrentConfig.version == 0 || CurrentConfig.version < 4) // update this when we add any new settings                  
+         else if (CurrentConfig.version == 0 || CurrentConfig.version < 5) // update this when we add any new settings                  
          {
-            CurrentConfig.version = 4;
+            CurrentConfig.version = 5;
             MyConfig.Serialize(configName, CurrentConfig);
          }
 
@@ -110,6 +274,8 @@ namespace ChirpBanner
       public void OnMessagesUpdated()
       {
       }
+
+
 
 	// Based on https://github.com/AtheMathmo/SuperChirperMod/blob/master/SuperChirper/ChirpFilter.cs
 	// But in the opposite direction
@@ -159,7 +325,7 @@ namespace ChirpBanner
                CitizenMessage cm = message as CitizenMessage;
                if (cm != null)
                {
-                  DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("found citmess MessageID: {0} GetText: {1}", cm.m_messageID, cm.GetText()));
+                  //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("found citmess MessageID: {0} GetText: {1}", cm.m_messageID, cm.GetText()));
                   citizenMessageID = cm.m_messageID;
                }
 
@@ -193,17 +359,30 @@ namespace ChirpBanner
             }
 			
 				if (important) {
-					DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("Chirp is important: {0}", message.text));
+					//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("Chirp is important: {0}", message.text));
 					//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("CurrentConfig.NameColor: {0}", CurrentConfig.NameColor));
 					//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("CurrentConfig.MessageColor: {0}", CurrentConfig.MessageColor));
 					textColorTag = "#FF0000";
 					nameColorTag = "#FF0000";
 				}
-            //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp! {0}", message.text));
+
+				// Check for CurrentConfig.FilterChirps
+				if (CurrentConfig.FilterChirps) {
+					// If Chirp is deemed not important as a result of above LocaleIDs, just return, do nothing
+					if (!important) {
+						return;
+					}
+				} else {
+            
 			//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("textColorTag: {0}", textColorTag));
 			//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("nameColorTag: {0}", nameColorTag));
+			DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp! {0}", message.text));
+
             string str = String.Format("<color{0}>{1}</color> : <color{2}>{3}</color>", nameColorTag, message.senderName, textColorTag, message.text);
             theBannerPanel.CreateBannerLabel(str, message.senderID);
+			//MyIThreadingExtension.addTask2Main(() => { theBannerPanel.CreateBannerLabel(str, message.senderID); });
+			//MyIThreadingExtension.addTask2Main(() => { DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp! {0}", message.text)); });	
+				}
          }
       }
 
@@ -300,10 +479,14 @@ namespace ChirpBanner
       const int banner_inset = 60;
       const int label_y_inset = 5;
 
+		public static UILabel ChirpLabel;
+
       public Color32 BackgroundColor = new Color32(0, 0, 0, 0xff);
       UIFont OurLabelFont = null;
 
-      Queue<BannerLabelStruct> BannerLabelsQ = new Queue<BannerLabelStruct>();
+		public Queue<BannerLabelStruct> BannerLabelsQ = new Queue<BannerLabelStruct>();
+
+		public static bool hasChirps = false;
       
       public void Initialize()
       {
@@ -329,11 +512,12 @@ namespace ChirpBanner
          this.height = 25;
 
          this.color = BackgroundColor;
-         this.opacity = Math.Max(0.02f, (1f - ChirpyBanner.CurrentConfig.BackgroundAlpha));
+     	 this.opacity = 1.0f;
 
          this.autoLayout = false;
          this.clipChildren = true;
          //this.isInteractive = true;
+		ChirpLabel = this.AddUIComponent<UILabel>();
 
          this.SendToBack();
       }
@@ -343,190 +527,87 @@ namespace ChirpBanner
          Shutdown = true;
       }
 
+		public void RemoveBannerLabel(BannerLabelStruct blsfree) {
+			this.RemoveUIComponent(blsfree.Label);
+		}
+
       public void CreateBannerLabel(string chirpStr, uint senderID)
       {
          if (Shutdown || string.IsNullOrEmpty(chirpStr))
          {
             return;
          }
+			hasChirps = true;
+			ChirpLabel = this.AddUIComponent<UILabel>();
+			if (ChirpLabel != null) {
+				//newLabel.autoSize = true;
+				//newLabel.autoHeight = true;
+				ChirpLabel.verticalAlignment = UIVerticalAlignment.Middle;
+				ChirpLabel.textAlignment = UIHorizontalAlignment.Left;
+				ChirpLabel.relativePosition = new Vector3 ((this.width), 0);
+				ChirpLabel.height = this.height;
+				ChirpLabel.padding = new RectOffset (0, 0, 5, 5);
 
-         UILabel newLabel = (UILabel)this.AddUIComponent<UILabel>();
+				ChirpLabel.textScaleMode = UITextScaleMode.ScreenResolution;
+				ChirpLabel.textScale = (float)ChirpyBanner.CurrentConfig.TextSize / 20f;
+				ChirpLabel.opacity = 1.0f;
+				ChirpLabel.processMarkup = true;
+				ChirpLabel.text = chirpStr;
 
-         if (newLabel != null)
-         {            
-            //newLabel.autoSize = true;
-            //newLabel.autoHeight = true;
-            newLabel.verticalAlignment = UIVerticalAlignment.Middle;
-            newLabel.textAlignment = UIHorizontalAlignment.Left;
+				ChirpLabel.objectUserData = (object)new InstanceID () {
+					Citizen = senderID
+				};
 
-            newLabel.height = this.height;
-            newLabel.padding = new RectOffset(0, 0, 5, 5);
-            newLabel.relativePosition = new Vector3(this.width, 0);
+				ChirpLabel.eventClick += (UIComponent comp, UIMouseEventParameter p) => {
+					if (!((UnityEngine.Object)p.source != (UnityEngine.Object)null) || !((UnityEngine.Object)ToolsModifierControl.cameraController != (UnityEngine.Object)null))
+						return;
+					InstanceID id = (InstanceID)p.source.objectUserData;
+					if (!InstanceManager.IsValid (id))
+						return;
+					ToolsModifierControl.cameraController.SetTarget (id, ToolsModifierControl.cameraController.transform.position, true); 
+				};
 
-            newLabel.textScaleMode = UITextScaleMode.ScreenResolution;
-            newLabel.textScale = (float)ChirpyBanner.CurrentConfig.TextSize / 20f;
-            newLabel.opacity = 1.0f;
-            newLabel.processMarkup = true;
-            newLabel.text = chirpStr;
-            
-            newLabel.objectUserData = (object)new InstanceID()
-            {
-               Citizen = senderID
-            };
+				if (OurLabelFont == null) {
+					OurLabelFont = ChirpLabel.font;
+				}
 
-            newLabel.eventClick += (UIComponent comp, UIMouseEventParameter p) =>
-            {
-               if (!((UnityEngine.Object)p.source != (UnityEngine.Object)null) || !((UnityEngine.Object)ToolsModifierControl.cameraController != (UnityEngine.Object)null))
-                  return;
-               InstanceID id = (InstanceID)p.source.objectUserData;
-               if (!InstanceManager.IsValid(id))
-                  return;
-               ToolsModifierControl.cameraController.SetTarget(id, ToolsModifierControl.cameraController.transform.position, true); 
-            };
-               
-            if (OurLabelFont == null)
-            {
-               OurLabelFont = newLabel.font;
-            }
-            
-           
-            if (OurLabelFont != null)
-            {
-               //OurLabelFont.size = ChirpyBanner.CurrentConfig.TextSize;
-               UIFontRenderer fr = OurLabelFont.ObtainRenderer();
-               fr.textScale = newLabel.textScale;
 
-               if (fr != null)
-               {
-                  Vector2 ms = fr.MeasureString(chirpStr);
+				if (OurLabelFont != null) {
+					//OurLabelFont.size = ChirpyBanner.CurrentConfig.TextSize;
+					UIFontRenderer fr = OurLabelFont.ObtainRenderer ();
+					fr.textScale = ChirpLabel.textScale;
 
-                  newLabel.width = ms.x;
-                  newLabel.height = ms.y;
+					if (fr != null) {
+						Vector2 ms = fr.MeasureString (chirpStr);
 
-                  if (this.height != (newLabel.height + 0))
-                  {
-                     this.height = newLabel.height + 0;
-                  }
-               }
-            }
+						ChirpLabel.width = ms.x;
+						ChirpLabel.height = ms.y;
 
-            BannerLabelStruct bls = new BannerLabelStruct();
-            bls.RelativePosition = new Vector3(this.width, label_y_inset); // starting position is off screen, at max extent of parent panel
-            bls.Label = newLabel;
-            bls.IsCurrentlyVisible = false;           
+						if (this.height != (ChirpLabel.height + 0)) {
+							this.height = ChirpLabel.height + 0;
+						}
+					}
+				}
 
-            // add to queue
-            BannerLabelsQ.Enqueue(bls);
-         }
-      }
-
-      // Monobehaviour mehods
-      public override void OnDestroy()
-      {
-         Cleanup();
-         base.OnDestroy();
-      }
-
-      public void OnGUI()
-      {
-         if (Shutdown)
-         {
-            return;
-         }
-
-         // if game is in free camera (screenshot/cinematic) mode, don't display chirp banner
-         GameObject gameObject = GameObject.FindGameObjectWithTag("MainCamera");
-         if (gameObject != null)
-         {
-            CameraController cameraController = gameObject.GetComponent<CameraController>();
-
-            if (cameraController != null)
-            {
-               if (cameraController.m_freeCamera)
-               {
-                  return;
-               }
-            }
-         }
-
-         // HideUI mod uses different mechanism to hide ui - it looks like it's disabling the UIView camera.
-         // - check and see if uiview cam is disabled, and if so don't show banner
-         var cameras = GameObject.FindObjectsOfType<Camera>();
-         foreach (var cam in cameras)
-         {
-            if (cam.name == "UIView")
-            {
-               if (!cam.enabled)
-               {
-                  return;
-               }
-
-               break;
-            }
-         }
-
-         // move the labels in the banner across the screen
-         // - foreach label that is visible, move left by step
-         // - if the first one is off screen pop it off queue
-         // - if the last one is fully onscreen, start moving next in line
-
-         bool bPopIt = false;
-         float currentTrailingEdge = 0;
-
-         // A queue can be enumerated without disturbing its contents. 
-         foreach (BannerLabelStruct bls in BannerLabelsQ)
-         {
-            if (bls.IsCurrentlyVisible)
-            {
-               bls.Label.relativePosition = new Vector3(bls.Label.relativePosition.x - Time.deltaTime * ChirpyBanner.CurrentConfig.ScrollSpeed, bls.Label.relativePosition.y, bls.Label.relativePosition.z);
-               bls.RelativePosition = bls.Label.relativePosition;
-
-               // is it off to the left entirely?                              
-               if ((bls.Label.relativePosition.x + bls.Label.width) <= 0)
-               {
-                  bPopIt = true;
-                  bls.IsCurrentlyVisible = false;
-                  bls.Label.isVisible = false;
-               }
-               else
-               {
-                  // still in banner (in whole or in part)
-                  currentTrailingEdge += bls.RelativePosition.x + bls.Label.width;
-                  bls.Label.isVisible = true;
-               }
-            }
-            else // I'm not yet visible...
-            {
-               // is there room for me to start scrolling?
-               if (currentTrailingEdge < this.width)
-               {
-                  // yes, there's room
-                  bls.Label.relativePosition = new Vector3(this.width, bls.Label.relativePosition.y, bls.Label.relativePosition.z);
-                  bls.RelativePosition = bls.Label.relativePosition;
-                  bls.IsCurrentlyVisible = true;
-                  bls.Label.isVisible = true;
-                  currentTrailingEdge += bls.RelativePosition.x + bls.Label.width; 
-               }
-            }
-         }
-
-         if (bPopIt)
-         {
-            BannerLabelStruct blsfree = BannerLabelsQ.Dequeue();
-            this.RemoveUIComponent(blsfree.Label);
-         }
+				BannerLabelStruct bls = new BannerLabelStruct ();
+				bls.RelativePosition = new Vector3 (this.width, label_y_inset); // starting position is off screen, at max extent of parent panel
+				bls.Label = ChirpLabel;
+				bls.IsCurrentlyVisible = true;
+				BannerLabelsQ.Enqueue(bls);
+			}
       }
    }
 
    public class MyConfig
    {      
       public bool DestroyBuiltinChirper = true;
-      public int ScrollSpeed = 50;
+      public int ScrollSpeed = 0;
       public int TextSize = 20; // pixels
       public string MessageColor = "#FFFFFFFF";
       public string NameColor = "#31C3FFFF";
       public int version = 0;
-      public float BackgroundAlpha = 0.4f;
+	  public float BackgroundAlpha = 0f;
+		public bool FilterChirps = false;
 
       public static void Serialize(string filename, MyConfig config)
       {
@@ -556,15 +637,6 @@ namespace ChirpBanner
                if (config.ScrollSpeed < 1) config.ScrollSpeed = 1;
                if (config.ScrollSpeed > 200) config.ScrollSpeed = 200;
                if (config.TextSize < 1 || config.TextSize > 100) config.TextSize = 20;
-
-               if (config.BackgroundAlpha < 0.02f)
-               {
-                  config.BackgroundAlpha = 0.02f;                     
-               }
-               else if (config.BackgroundAlpha > 0.98f)
-               {
-                  config.BackgroundAlpha = 0.98f;
-               }
 
                return config;
             }
