@@ -16,6 +16,7 @@ namespace ChirpBanner
 {
     public class ChirpyBannerMod : IUserMod
     {
+		public static MyConfig CurrentConfig;
        public string Description
        {
           get { return "Replaces Chirpy with a scrolling Marquee banner."; }
@@ -23,11 +24,52 @@ namespace ChirpBanner
 
        public string Name
        {
-          get { return "Chirpy Banner"; }
+          get { return "Chirpy Banner+"; }
        }
+
+		public void OnSettingsUI(UIHelperBase helper)
+		{
+			
+			string configName = "ChirpBannerConfig.xml";
+			CurrentConfig = MyConfig.Deserialize(configName);
+
+			if (CurrentConfig == null)
+			{
+				CurrentConfig = new MyConfig();
+
+				MyConfig.Serialize(configName, CurrentConfig);
+			}
+			// if old version, update with new
+			else if (CurrentConfig.version == 0 || CurrentConfig.version < 5) // update this when we add any new settings                  
+			{
+				CurrentConfig.version = 5;
+				MyConfig.Serialize(configName, CurrentConfig);
+			}
+
+			UIHelperBase group = helper.AddGroup("ChirpBanner+ Options");
+			group.AddCheckbox("Hide Chirper", CurrentConfig.DestroyBuiltinChirper, CheckHideChirper);
+			group.AddCheckbox("Filter out Chirps", CurrentConfig.FilterChirps, CheckFilterChirper);
+			//group.AddSlider("My Slider", 0, 1, 0.01f, 0.5f, EventSlide);
+			//group.AddDropdown("My Dropdown", new string[] { "First Entry", "Second Entry", "Third Entry" }, -1, EventSel);
+			//group.AddSpace(250);
+			//group.AddButton("My Button", EventClick);
+			//group.AddTextfield ("My Textfield", "Default value", EventTextChanged, EventTextSubmitted);
+		}
+
+		public void CheckHideChirper(bool c) {
+			CurrentConfig.DestroyBuiltinChirper = c;
+			MyConfig.Serialize("ChirpBannerConfig.xml", CurrentConfig);
+		}
+		public void CheckFilterChirper(bool c) {
+			CurrentConfig.FilterChirps = c;
+			MyConfig.Serialize("ChirpBannerConfig.xml", CurrentConfig);
+		}
+
     }
 
 	// Adds a button to configure the ChirperBanner
+	// Commented out, now relying on the built-in Mod Options menu
+	/*
 	public class LoadingExtension : LoadingExtensionBase
 	{
 		ILoading loading;
@@ -80,6 +122,7 @@ namespace ChirpBanner
 			ChirpyBanner.theBannerConfigPanel.ShowPanel(Vector2.zero, true);
 		}
 	}
+	*/
 
 	// Function to thread the Chirp stuff
 	// Code for threading courtesy of https://github.com/onewaycitystreets/StreetDirectionViewer/blob/0107f423af6a79a81dfce3e6942d01df9db0065f/StreetDirectionViewer.cs
@@ -237,27 +280,29 @@ namespace ChirpBanner
       public static MyConfig CurrentConfig;
       public static BannerPanel theBannerPanel;
       public static IChirper BuiltinChirper;
+		public bool importantChirp = false;
+
 
       public static BannerConfiguration theBannerConfigPanel;
 
       public void OnCreated(IChirper chirper)
       {
          // read config file for settings
-         string configName = "ChirpBannerConfig.xml";
-         CurrentConfig = MyConfig.Deserialize(configName);
+			string configName = "ChirpBannerConfig.xml";
+			CurrentConfig = MyConfig.Deserialize(configName);
 
-         if (CurrentConfig == null)
-         {
-            CurrentConfig = new MyConfig();
+			if (CurrentConfig == null)
+			{
+				CurrentConfig = new MyConfig();
 
-            MyConfig.Serialize(configName, CurrentConfig);
-         }
-         // if old version, update with new
-         else if (CurrentConfig.version == 0 || CurrentConfig.version < 5) // update this when we add any new settings                  
-         {
-            CurrentConfig.version = 5;
-            MyConfig.Serialize(configName, CurrentConfig);
-         }
+				MyConfig.Serialize(configName, CurrentConfig);
+			}
+			// if old version, update with new
+			else if (CurrentConfig.version == 0 || CurrentConfig.version < 5) // update this when we add any new settings                  
+			{
+				CurrentConfig.version = 5;
+				MyConfig.Serialize(configName, CurrentConfig);
+			}
 
          BuiltinChirper = chirper;
 
@@ -366,23 +411,29 @@ namespace ChirpBanner
 					nameColorTag = "#FF0000";
 				}
 
+				string str = String.Format("<color{0}>{1}</color> : <color{2}>{3}</color>", nameColorTag, message.senderName, textColorTag, message.text);
+
 				// Check for CurrentConfig.FilterChirps
 				if (CurrentConfig.FilterChirps) {
 					// If Chirp is deemed not important as a result of above LocaleIDs, just return, do nothing
 					if (!important) {
+						DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("Chirp is not important: {0}", message.text));
 						return;
 					}
-				} else {
+					// Otherwise, do something
+					if (important) {
+						DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("Chirp is important: {0}", message.text));
+						theBannerPanel.CreateBannerLabel(str, message.senderID);
+					}
+				}
             
 			//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("textColorTag: {0}", textColorTag));
 			//DebugOutputPanel.AddMessage (ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format ("nameColorTag: {0}", nameColorTag));
 			DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp! {0}", message.text));
-
-            string str = String.Format("<color{0}>{1}</color> : <color{2}>{3}</color>", nameColorTag, message.senderName, textColorTag, message.text);
+            
             theBannerPanel.CreateBannerLabel(str, message.senderID);
 			//MyIThreadingExtension.addTask2Main(() => { theBannerPanel.CreateBannerLabel(str, message.senderID); });
 			//MyIThreadingExtension.addTask2Main(() => { DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp! {0}", message.text)); });	
-				}
          }
       }
 
@@ -645,6 +696,14 @@ namespace ChirpBanner
 
          return null;
       }
+
+		public static void SaveConfig(bool c) {
+			MyConfig.Serialize("ChirpBannerConfig.xml", ChirpyBanner.CurrentConfig);
+		}
+		public static void LoadConfig() {
+			//MyConfig.Serialize("ChirpBannerConfig.xml", ChirpyBanner.CurrentConfig);
+			ChirpyBanner.CurrentConfig = MyConfig.Deserialize("ChirpBannerConfig.xml");
+		}
 
    }
 }

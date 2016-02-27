@@ -21,11 +21,22 @@ namespace ChirpBanner
       // sub panels
       UITitleSubPanel TitleSubPanel;
       UICheckSubPanel HideChirpSubPanel;
-		UICheckSubPanel FilterChirpSubPanel;
+		//UICheckSubPanel FilterChirpSubPanel;
       UISliderSubPanel ScrollSpeedSlider;
       UISliderSubPanel TextSizeSlider;
       UIColorSubPanel NameColorSubPanel;
       UIColorSubPanel MessageColorSubPanel;
+
+
+
+		UILabel Title;
+		UIButton CloseButton;
+		UIDragHandle DragHandle;
+		UISlider ScrollSpeed;
+		UICheckBox FilterChirp;
+		UICheckBox HideChirp;
+
+		int inset = 5;
 
       public void Initialize(ChirpyBanner chBann)
       {
@@ -39,6 +50,35 @@ namespace ChirpBanner
             // log error
             return;
          }
+
+			Title = AddUIComponent<UILabel>();
+			CloseButton = AddUIComponent<UIButton>();
+			DragHandle = AddUIComponent<UIDragHandle>();
+			FilterChirp = AddUIComponent<UICheckBox>();
+			HideChirp = AddUIComponent<UICheckBox>();
+
+			Title.relativePosition = new Vector3(inset, inset);
+			Title.text = "ChirpBanner Configuration";
+
+			CloseButton.normalBgSprite = "buttonclose";
+			CloseButton.hoveredBgSprite = "buttonclosehover";
+			CloseButton.pressedBgSprite = "buttonclosepressed";
+			CloseButton.relativePosition = new Vector3(this.width - CloseButton.width - inset, inset);
+			CloseButton.eventClick += (component, param) => { this.HideAndSavePanel(); };
+
+			FilterChirp.text = "Filter out Chirps?";
+			FilterChirp.relativePosition = new Vector3(inset, 0);
+			FilterChirp.isChecked = ChirpyBanner.CurrentConfig.FilterChirps;
+
+			HideChirp.isChecked = ChirpyBanner.CurrentConfig.DestroyBuiltinChirper;
+			HideChirp.relativePosition = new Vector3(inset, 0);
+			HideChirp.text = "Hide Chirper?";
+			//HideChirp.OnCheckChanged(CheckChirper);
+
+			DragHandle.target = this;
+			DragHandle.height = this.height;
+			DragHandle.width = this.width - 50;
+			DragHandle.relativePosition = Vector3.zero;
 
          this.backgroundSprite = "MenuPanel";// or MenuPanel2
          this.clipChildren = false;// true; //temp
@@ -57,6 +97,7 @@ namespace ChirpBanner
 
          //this.SendToBack();
 
+			/*
          TitleSubPanel = AddUIComponent<UITitleSubPanel>();
          TitleSubPanel.ParentBannerConfig = this;
 
@@ -74,9 +115,6 @@ namespace ChirpBanner
          };
 
 
-			FilterChirpSubPanel = AddUIComponent<UICheckSubPanel>();
-			FilterChirpSubPanel.ParentBannerConfig = this;
-			FilterChirpSubPanel.Checked = ChirpyBanner.CurrentConfig.FilterChirps;
 
          ScrollSpeedSlider = AddUIComponent<UISliderSubPanel>();
          ScrollSpeedSlider.ParentBannerConfig = this;
@@ -109,7 +147,7 @@ namespace ChirpBanner
          MessageColorSubPanel.Description.text = "Chirp Message Color";
          MessageColorSubPanel.ColorField.selectedColor = UIMarkupStyle.ParseColor(ChirpyBanner.CurrentConfig.MessageColor, Color.white);
          MessageColorSubPanel.ColorField.eventSelectedColorReleased += (component, param) => { ChirpyBanner.CurrentConfig.MessageColor = UIMarkupStyle.ColorToHex(param);  };
-
+			*/
          this.eventVisibilityChanged += BannerConfiguration_eventVisibilityChanged;
       }
 
@@ -117,6 +155,8 @@ namespace ChirpBanner
       {
          //?
       }
+
+
 
       public void ShowPanel(Vector2 pos, bool bCenter)
       {
