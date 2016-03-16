@@ -94,60 +94,6 @@ namespace ChirpBanner
          //testing tempsizes
          this.width = 450;
          this.height = 400;
-
-         //this.SendToBack();
-
-			/*
-         TitleSubPanel = AddUIComponent<UITitleSubPanel>();
-         TitleSubPanel.ParentBannerConfig = this;
-
-         HideChirpSubPanel = AddUIComponent<UICheckSubPanel>();
-         HideChirpSubPanel.ParentBannerConfig = this;
-         HideChirpSubPanel.Checked = ChirpyBanner.CurrentConfig.DestroyBuiltinChirper;
-         HideChirpSubPanel.Checkbox.eventClick += (component, param) => 
-         { 
-            ChirpyBanner.CurrentConfig.DestroyBuiltinChirper = !ChirpyBanner.CurrentConfig.DestroyBuiltinChirper;
-
-            if (ChirpyBanner.BuiltinChirper != null)
-            {
-               ChirpyBanner.BuiltinChirper.ShowBuiltinChirper(!ChirpyBanner.CurrentConfig.DestroyBuiltinChirper);
-            }
-         };
-
-
-
-         ScrollSpeedSlider = AddUIComponent<UISliderSubPanel>();
-         ScrollSpeedSlider.ParentBannerConfig = this;
-         ScrollSpeedSlider.Slider.minValue = 1;
-         ScrollSpeedSlider.Slider.maxValue = 200;
-         ScrollSpeedSlider.Slider.stepSize = 5;
-         ScrollSpeedSlider.Slider.value = ChirpyBanner.CurrentConfig.ScrollSpeed;
-         ScrollSpeedSlider.Slider.scrollWheelAmount = 5;
-         ScrollSpeedSlider.Description.text = "Scrolling Speed";
-         ScrollSpeedSlider.Slider.eventValueChanged += (component, param) => { ChirpyBanner.CurrentConfig.ScrollSpeed = (int)param; };
-
-         TextSizeSlider = AddUIComponent<UISliderSubPanel>();
-         TextSizeSlider.ParentBannerConfig = this;
-         TextSizeSlider.Slider.minValue = 5;
-         TextSizeSlider.Slider.maxValue = 50;
-         TextSizeSlider.Slider.stepSize = 1;
-         TextSizeSlider.Slider.value = ChirpyBanner.CurrentConfig.TextSize;
-         TextSizeSlider.Slider.scrollWheelAmount = 1;
-         TextSizeSlider.Description.text = "Text Size";
-         TextSizeSlider.Slider.eventValueChanged += (component, param) => { ChirpyBanner.CurrentConfig.TextSize = (int)param; };
-
-         NameColorSubPanel = AddUIComponent<UIColorSubPanel>();
-         NameColorSubPanel.ParentBannerConfig = this;
-         NameColorSubPanel.Description.text = "Chirper Name Color";
-         NameColorSubPanel.ColorField.selectedColor = UIMarkupStyle.ParseColor(ChirpyBanner.CurrentConfig.NameColor, Color.cyan);
-         NameColorSubPanel.ColorField.eventSelectedColorReleased += (component, param) => { ChirpyBanner.CurrentConfig.NameColor = UIMarkupStyle.ColorToHex(param); };
-
-         MessageColorSubPanel = AddUIComponent<UIColorSubPanel>();
-         MessageColorSubPanel.ParentBannerConfig = this;
-         MessageColorSubPanel.Description.text = "Chirp Message Color";
-         MessageColorSubPanel.ColorField.selectedColor = UIMarkupStyle.ParseColor(ChirpyBanner.CurrentConfig.MessageColor, Color.white);
-         MessageColorSubPanel.ColorField.eventSelectedColorReleased += (component, param) => { ChirpyBanner.CurrentConfig.MessageColor = UIMarkupStyle.ColorToHex(param);  };
-			*/
          this.eventVisibilityChanged += BannerConfiguration_eventVisibilityChanged;
       }
 
